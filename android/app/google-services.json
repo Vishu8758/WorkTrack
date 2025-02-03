@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "405400122208",
+    "project_id": "worktrack-e1faf",
+    "storage_bucket": "worktrack-e1faf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405400122208:android:2332f44ae96e83e31ea405",
+        "android_client_info": {
+          "package_name": "com.worktrack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDt1L4uk2pBR_lzEbQhXTZDYYQquA6xPCs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
