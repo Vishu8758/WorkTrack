@@ -19,6 +19,9 @@ const Home = (props) => {
     const [hasCheckedOut, setHasCheckedOut] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [latitude, setLatitude] = useState(null);
+    const [id1,setId1] =useState("")
+    console.log(id1);
+    
     const [longitude, setLongitude] = useState(null);
     const [totalBreakTime, setTotalBreakTime] = useState(0); // State for total break time
     const [check, setCheck] = useState({
@@ -77,14 +80,14 @@ const Home = (props) => {
             const response = await fetch("http://3.110.104.79:3000/v1/auth/fetchEmployeeActivity", requestOptions);
             const result = await response.json();
 
-            console.log("API Response:", result); // Debugging ke liye response log karen
+            console.log("API Response:", result.employeeActivity); // Debugging ke liye response log karen
 
             if (result.success && result.employeeActivity) {
-                const { totalBreakTime, checkInTime, checkout } = result.employeeActivity;
-
-                // Format check-in and check-out time to hh:mm
-                const formattedCheckInTime = moment(checkInTime).format('HH:mm');
-                const formattedCheckOutTime = checkout ? moment(checkout).format('HH:mm') : '00:00';
+                const { totalBreakTime, checkInTime, checkOutTime,_id } = result.employeeActivity;
+                setId1(_id)
+                // Format check-in and check-out time to hh:mm in 12-hour format
+                const formattedCheckInTime = moment(checkInTime).format('hh:mm A');
+                const formattedCheckOutTime = checkOutTime ? moment(checkOutTime).format('hh:mm A') : '00:00 AM';
 
                 let obj = {
                     checkInTime: formattedCheckInTime,
@@ -97,7 +100,7 @@ const Home = (props) => {
                 setCheck(obj);
 
                 setTotalBreakTime(totalBreakTime); // Set total break time in state
-            
+
             } else {
                 console.log("Invalid API response structure:", result);
             }
@@ -124,7 +127,10 @@ const Home = (props) => {
         })
             .then(location => {
                 setLatitude(location.latitude);
+                console.log(latitude);
+
                 setLongitude(location.longitude);
+                console.log(longitude);
             })
             .catch(error => {
                 console.log(error);
@@ -152,8 +158,8 @@ const Home = (props) => {
             const result = await response.json();
 
             if (result.employeeActivity) {
-                const formattedCheckInTime = moment(result.employeeActivity.checkInTime).format('HH:mm');
-                const formattedCheckOutTime = result.employeeActivity.checkout ? moment(result.employeeActivity.checkout).format('HH:mm') : '00:00';
+                const formattedCheckInTime = moment(result.employeeActivity.checkInTime).format('hh:mm A');
+                const formattedCheckOutTime = result.employeeActivity.checkout ? moment(result.employeeActivity.checkout).format('hh:mm A') : '00:00 AM';
 
                 setCheck({
                     checkInTime: formattedCheckInTime,
@@ -163,8 +169,8 @@ const Home = (props) => {
                 });
             } else {
                 setCheck({
-                    checkInTime: '00:00',
-                    checkout: '00:00',
+                    checkInTime: '00:00 AM',
+                    checkout: '00:00 AM',
                     checkInStatus: 'No Status',
                     checkOutStatus: 'No Status',
                 });
@@ -172,13 +178,26 @@ const Home = (props) => {
         } catch (error) {
             console.error("Error fetching data:", error);
             setCheck({
-                checkInTime: '00:00',
-                checkout: '00:00',
+                checkInTime: '00:00 AM',
+                checkout: '00:00 AM',
                 checkInStatus: 'No Status',
                 checkOutStatus: 'No Status',
             });
         }
     };
+
+    useEffect(() => {
+        const fetchCheckInStatus = async () => {
+            const savedCheckIn = await AsyncStorage.getItem('hasCheckedIn');
+            const savedCheckOut = await AsyncStorage.getItem('hasCheckedOut');
+
+            setHasCheckedIn(savedCheckIn === 'true');
+            setHasCheckedOut(savedCheckOut === 'true');
+        };
+
+        fetchCheckInStatus();
+    }, []);
+
 
     const checkIn = async () => {
         try {
@@ -188,14 +207,14 @@ const Home = (props) => {
                 return;
             }
 
-            const myHeaders = new Headers();
-            myHeaders.append("Content-Type", "application/json");
-            myHeaders.append("Authorization", `Bearer ${Token}`);
-
             if (latitude === null || longitude === null) {
                 Alert.alert("Error", "Location not available. Please try again.");
                 return;
             }
+
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            myHeaders.append("Authorization", `Bearer ${Token}`);
 
             const raw = JSON.stringify({
                 latitude: latitude,
@@ -211,14 +230,18 @@ const Home = (props) => {
 
             const response = await fetch("http://3.110.104.79:3000/v1/auth/employeeCheckIn", requestOptions);
             const result = await response.json();
+            console.log(result, "................>>>>>>");
 
             if (response.ok) {
                 Alert.alert("Success", "Successfully checked in!");
                 setHasCheckedIn(true);
                 setHasCheckedOut(false);
+
+                await AsyncStorage.setItem('hasCheckedIn', 'true');
+                await AsyncStorage.setItem('hasCheckedOut', 'false');
+                fetchActivityData();
             } else {
-                const errorMessage = "user is outside the office area" || "Something went wrong. Please try again.";
-                Alert.alert("Error", errorMessage);
+                Alert.alert("Error", result.message || "Something went wrong. Please try again.");
             }
         } catch (error) {
             console.error(error);
@@ -230,13 +253,14 @@ const Home = (props) => {
         try {
             const Token = await AsyncStorage.getItem('token');
             const employId = await AsyncStorage.getItem('uid');
+            
+            
 
             if (!Token || !employId) {
                 Alert.alert("Error", "Token or Employee ID not found. Please log in again.");
                 return;
             }
 
-            // Validate latitude and longitude
             if (isNaN(latitude) || isNaN(longitude)) {
                 Alert.alert("Error", "Invalid location data. Please try again.");
                 return;
@@ -246,34 +270,34 @@ const Home = (props) => {
             myHeaders.append("Content-Type", "application/json");
             myHeaders.append("Authorization", `Bearer ${Token}`);
 
-            const raw = JSON.stringify({
-                latitude: latitude,
-                longitude: longitude,
-            });
-
             const requestOptions = {
                 method: "PUT",
                 headers: myHeaders,
-                body: raw,
                 redirect: "follow"
             };
 
-            const response = await fetch(`http://3.110.104.79:3000/v1/auth/employeeCheckOut?employeeActivityId=${employId}&latitude=${latitude}&longitude=${longitude}`, requestOptions);
+            const response = await fetch(`http://3.110.104.79:3000/v1/auth/employeeCheckOut?employeeActivityId=${id1}&latitude=30.7118432&longitude= 76.6863138`, requestOptions)
             const result = await response.json();
 
             if (response.ok) {
                 Alert.alert("Success", "Successfully checked out!");
                 setHasCheckedOut(true);
                 setHasCheckedIn(false);
+
+                await AsyncStorage.setItem('hasCheckedIn', 'false');
+                await AsyncStorage.setItem('hasCheckedOut', 'true');
+
+
+                fetchActivityData();
             } else {
-                const errorMessage =  "user is outside the office area" || "Something went wrong. Please try again.";
-                Alert.alert("Error", errorMessage);
+                Alert.alert("Error", result.message || "Something went wrong. Please try again.");
             }
         } catch (error) {
             console.error(error);
             Alert.alert("Error", "An unexpected error occurred. Please try again.");
         }
     };
+
 
     const toggleModal = () => {
         setIsModalVisible(!isModalVisible);
@@ -293,26 +317,6 @@ const Home = (props) => {
             console.error("Error logging out:", error);
         }
     };
-    // useEffect(() => {
-    //     BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-    // }, []);
-
-    // const handleBackPress = () => {
-    //     if (props.navigation.isFocused()) {
-    //         Alert.alert(
-    //             "Exit App",
-    //             "Do you want to exit?",
-    //             [
-    //                 { text: "No", style: "cancel" },
-    //                 { text: "Yes", onPress: () => BackHandler.exitApp() },
-    //             ],
-    //             { cancelable: false }
-    //         );
-    //         return true;
-    //     } else {
-    //         return false;
-    //     }
-    // };
 
     return (
         <SafeAreaView style={{ ...Styles.main, backgroundColor: isDarkMode ? "black" : "white" }}>

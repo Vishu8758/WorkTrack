@@ -54,10 +54,10 @@ const Login = (props) => {
         try {
             const response = await fetch("http://3.110.104.79:3000/v1/auth/login", requestOptions);
             const result = await response.json();
-            console.log(result);
+            console.log(result,"[[[[[[[[[[[[[[");
 
             if (result.success) {
-                const { employeeId, name, jobRole } = result.user;
+                const { employeeId, name, jobRole,} = result.user;
                 await AsyncStorage.setItem("token", result.token);
                 await AsyncStorage.setItem("uid", employeeId);
                 await AsyncStorage.setItem("name", name);

@@ -1,12 +1,39 @@
 import React, { useEffect } from 'react'
-import { LogBox ,AppState, StatusBar} from 'react-native'
+import { LogBox ,AppState, StatusBar, Alert} from 'react-native'
 import Stack from './src/routes/Stack'
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {PermissionsAndroid} from 'react-native';
+import messaging from '@react-native-firebase/messaging';
 LogBox.ignoreAllLogs()
 
 
 const App = () => {
+  useEffect(()=>{
+       requestPermissionAndroid();
+  },[])
+  const requestPermissionAndroid =async ()=>{
+    const granted =await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS); 
+  if (granted === PermissionsAndroid.RESULTS.GRANTED){
+    // Alert.alert('Permission Granted')
+    getToken()
+  }else {
+    // Alert.alert('Permission Denied')
+  }
+  
+  }
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+    });
+    return unsubscribe;
+  }, []);
+
+  const getToken =async()=>{
+    const token = await messaging().getToken();
+    console.log("token notification",token);
+    
+  }
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState) => {

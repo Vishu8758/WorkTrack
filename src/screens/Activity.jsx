@@ -99,7 +99,7 @@ const Activity = (props) => {
         <View style={{ flex: 1 }}>
           <Text style={Styles.itemText}>Check-Out</Text>
           <Text style={{ color: 'gray' }}>
-            Time: {new Date(data.checkout).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            Time: {new Date(data.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
       </View>
